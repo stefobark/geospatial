@@ -5,7 +5,7 @@ require 'vendor/autoload.php';
 require_once('functions.php');
 session_start();
 
-echo "
+echo <<<HERE
 		<!DOCTYPE html>
 		<html lang='en'>
 		<head>
@@ -48,8 +48,8 @@ echo "
 								<input type='submit' value='go'>				
 						</div>
 					</form>
-				</div>";
-echo '		<div class="col-md-8">
+				</div>
+				<div class="col-md-8">
 				<h3>This is happening:</h3>
 				<p class="help-block">We enter an address and get the lat/long with the <a 
 				href="https://www.census.gov/geo/maps-data/data/geocoder.html">Cencus Geocoder</a>.
@@ -58,14 +58,14 @@ echo '		<div class="col-md-8">
 				Our district shapes come from <a href="http://www2.census.gov/geo/tiger/TIGER2013/SLDL/tl_2013_01_sldl.zip">here</a>.</p>
 				<p class="help-block"> In our case, it looks like this: <br /><strong>
 				"SELECT namelsad FROM tl_2013_01_sldl <br />
-				WHERE ST_CONTAINS(shape, POINT($lat, $long))";</strong></p>
+				WHERE ST_CONTAINS(shape, POINT(\$lat, \$long))";</strong></p>
 				<p class="help-block">Notice that ST_CONTAINS does what we want, it returns only one district for our point. CONTAINS uses a minimum bounding
 				rectangle, so it returns multiple districts.</p>
 				</div>		
 			<div class="row">
 				<div class="col-md-3">
 					
-';
+HERE;
 
 //if form info has been sent, do:
 if (isset($_POST['street'])) {
@@ -110,8 +110,8 @@ if (isset($_POST['street'])) {
    
     //forgot why i did this..
     //sometimes the census geocoder doesn't work.. so, in this case, just explicitly set some lat/long here
-    $long =   $_SESSION['long'];
-    $lat  =   $_SESSION['lat'];
+    $long =  -86.220703;
+    $lat  =  32.342223;
     
     //build queries
     $sql_st_contains = "select namelsad, astext(exteriorring(shape)) from tl_2013_01_sldl where ST_CONTAINS(shape, POINT($long, $lat))";
