@@ -69,56 +69,57 @@ echo '		<div class="col-md-8">
 
 //if form info has been sent, do:
 if (isset($_POST['street'])) {
-    
-    //connect to mysql
-    $mysqli = new mysqli('127.0.0.1', 'root', '', 'gro', '3306');
-    if ($mysqli->connect_errno) {
-        printf("Connect failed: %s\n", $mysqli->connect_error);
-        exit();
-    }
-    
-    //new guzzle object
-    $client = new Guzzle\Http\Client('http://geocoding.geo.census.gov/geocoder/');
-    
-    //build string for get request using form info
-    $get_this = "street=" . str_replace(' ', '+', $_POST['street']);
-    
-    if (!empty($_POST['city'])) {
-        $get_this .= "&city=" . $_POST['city'];
-    }
-    
-    if (!empty($_POST['state'])) {
-        $get_this .= "&state=" . $_POST['state'];
-    }
-    
-    if (!empty($_POST['zip'])) {
-        $get_this .= "&zip=" . $_POST['zip'];
-    }
-    
-    $get_this .= "&benchmark=Public_AR_Census2010&format=json";
-    
-    //if we haven't already hit the census geocoder (if we have, $_SESSION['long'] will be set), 
-    //do so, and put the resulting coordinates into session variables
-    if (!isset($_SESSION['long'])) {
-        $response = $client->get("locations/address?$get_this")->send();
-        
-        $json = $response->json();
-        
-        $_SESSION['long'] = $json["result"]["addressMatches"][0]["coordinates"]["x"];
-        $_SESSION['lat']  = $json["result"]["addressMatches"][0]["coordinates"]["y"];
-    }
-    
+	 
+	 //connect to mysql
+	 $mysqli = new mysqli('127.0.0.1', 'root', '', 'gro', '3306');
+	 if ($mysqli->connect_errno) {
+		  printf("Connect failed: %s\n", $mysqli->connect_error);
+		  exit();
+	 }
+	 
+	 //new guzzle object
+	 $client = new Guzzle\Http\Client('http://geocoding.geo.census.gov/geocoder/');
+	 
+	 //build string for get request using form info
+	 $get_this = "street=" . str_replace(' ', '+', $_POST['street']);
+	 
+	 if (!empty($_POST['city'])) {
+		  $get_this .= "&city=" . $_POST['city'];
+	 }
+	 
+	 if (!empty($_POST['state'])) {
+		  $get_this .= "&state=" . $_POST['state'];
+	 }
+	 
+	 if (!empty($_POST['zip'])) {
+		  $get_this .= "&zip=" . $_POST['zip'];
+	 }
+	 
+	 $get_this .= "&benchmark=Public_AR_Census2010&format=json";
+			 
+	 //if we haven't already hit the census geocoder (if we have, $_SESSION['long'] will be set), 
+	 //do so, and put the resulting coordinates into session variables
+    if(!isset($_SESSION['long'])){			 
+			 $response = $client->get("locations/address?$get_this")->send();
+			 
+			 $json = $response->json();
+			 
+			 $_SESSION['long'] = $json["result"]["addressMatches"][0]["coordinates"]["x"];
+			 $_SESSION['lat'] = $json["result"]["addressMatches"][0]["coordinates"]["y"];
+   }
+   
     //forgot why i did this..
-    $long = $_SESSION['long'];
-    $lat  = $_SESSION['lat'];
+    //sometimes the census geocoder doesn't work.. so, in this case, just explicitly set some lat/long here
+    $long =  -86.220703;
+    $lat  =  32.342223;
     
     //build queries
     $sql_st_contains = "select namelsad, astext(exteriorring(shape)) from tl_2013_01_sldl where ST_CONTAINS(shape, POINT($long, $lat))";
     $sql_contains    = "select namelsad, astext(exteriorring(shape)) from tl_2013_01_sldl where contains(shape, POINT($long, $lat))";
     
     
-    //run query, print results (should only be one row.. which is good), shuv the WKT formatted 
-    //text and the 'cleanshape' into session variables 
+   //run query, print results (should only be one row.. which is good), shuv the WKT formatted 
+   //text and the 'cleanshape' into session variables 
     if ($result = $mysqli->query($sql_st_contains)) {
         printf("<h3>ST_CONTAINS</h3>\n<br>", $result->num_rows);
         while ($row = $result->fetch_row()) {
@@ -126,15 +127,15 @@ if (isset($_POST['street'])) {
             $_SESSION['shape']      = $row[1];
             $_SESSION['cleanshape'] = convert($row[1]);
         }
-        
-        echo "<p class='help-block'>Good. One point, one district. ST_CONTAINS
+    
+   	  echo "<p class='help-block'>Good. One point, one district. ST_CONTAINS
    	  does what we want.</p>";
         
         /* free result set */
         $result->close();
     }
-    
-    //this query demonstrates why we don't want to use 'contains'
+   
+   //this query demonstrates why we don't want to use 'contains'
     echo "</div><div class='col-md-1'></div><div class='col-md-3'>";
     if ($result = $mysqli->query($sql_contains)) {
         printf("<h3>CONTAINS</h3>\n<br>", $result->num_rows);
@@ -157,8 +158,8 @@ if (isset($_POST['street'])) {
     echo "</div></div>
 		<div class='row'>
 		<div class='col-md-4 alert alert-info'>";
-    
-    //if they've entered form info, do all this stuff	
+	
+	//if they've entered form info, do all this stuff	
     if (isset($lat)) {
         //convert degrees to radians.. for sphinx
         $radlat  = deg2rad($lat);
@@ -178,8 +179,8 @@ if (isset($_POST['street'])) {
         printf("Connect failed: %s\n", $sphinx->connect_error);
         exit();
     }
-    
-    //print description of sphinx stuff    
+
+	//print description of sphinx stuff    
     echo "<div class='row'><div class='col-md-8'><h3>Sphinx <strong>fulltext/geodistance</strong> searching a data dump from <a href='http://www.geonames.org/'>geonames.org</a> (using your position)</h3>
     <h4><strong>..because Sphinx is really good at searching text!</strong><br /> geospatial search + flexible text search = awesome.</h4></div><div class='col-md-4'>
     		<div class='alert alert-warning'> <h3>Go <a href= 'https://github.com/adriannuta/SphinxGeoExample'>here</a> to check out Adrian's (more complete) demonstration of Sphinx's geospatial capabilities.</h3>
@@ -263,19 +264,19 @@ if (isset($_POST['street'])) {
             printf("%s\n<br>", $row[5]);
             
         }
-        echo "</div></div><div class='col-md-6'>";
-    }
-    if ($result = $sphinx->query("SELECT *, CONTAINS(GEOPOLY2D($golden), latitude_deg, longitude_deg)
+     echo "</div></div><div class='col-md-6'>";
+      }
+     if ($result = $sphinx->query("SELECT *, CONTAINS(GEOPOLY2D($golden), latitude_deg, longitude_deg)
       as inside FROM geodemo WHERE inside=1 AND MATCH('school')")) {
         printf("<h4 class='alert alert-info'>SELECT *, CONTAINS(GEOPOLY2D(<strong>POLYGON COORDINATES 
-        GO HERE</strong>), latitude_deg, longitude_deg) as distance FROM geodemo WHERE inside=1 AND MATCH('school')</h4>
+        GO HERE</strong>), latitude_deg, longitude_deg) as inside FROM geodemo WHERE inside=1 AND MATCH('school')</h4>
         <h5>These schools are within your district.</h5>\n<br>");
         echo "<div style='word-break:break-all!important; max-height:200px; overflow:scroll;'>";
         while ($row = $result->fetch_row()) {
             
             printf("%s\n<br>", $row[5]);
             
-        }
+        }    
         echo "</div></div></div>";
     }
     
