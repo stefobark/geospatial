@@ -110,8 +110,8 @@ if (isset($_POST['street'])) {
    
     //forgot why i did this..
     //sometimes the census geocoder doesn't work.. so, in this case, just explicitly set some lat/long here
-    $long =  -86.220703;
-    $lat  =  32.342223;
+    $long =   $_SESSION['long'];
+    $lat  =   $_SESSION['lat'];
     
     //build queries
     $sql_st_contains = "select namelsad, astext(exteriorring(shape)) from tl_2013_01_sldl where ST_CONTAINS(shape, POINT($long, $lat))";
